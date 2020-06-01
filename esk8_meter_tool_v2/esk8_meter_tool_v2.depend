@@ -1,0 +1,9 @@
+# depslib dependency file v1.0
+1590518392 source:c:\users\florian\desktop\100km\esk8_meter\software\esk8_meter_tool_v2\main.cpp
+	<stdio.h>
+	<stdint.h>
+	<limits.h>
+	<conio.h>
+
+1590511086 c:\users\florian\desktop\100km\esk8_meter\software\esk8_meter_tool_v2\buff_stream.h
+
