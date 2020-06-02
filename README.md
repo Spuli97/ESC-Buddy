@@ -1,2 +1,2 @@
 # ESC-Buddy
-firmware for esc buddy v3-1
+firmware for both esc buddy hardware versions v3-1 and v3-2
