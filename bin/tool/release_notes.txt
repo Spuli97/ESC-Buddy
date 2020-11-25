@@ -1,0 +1,1 @@
+v3: adds gear ratio, always run of provided read_data file to ensuire stability

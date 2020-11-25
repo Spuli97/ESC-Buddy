@@ -1,0 +1,41 @@
+fw_v3_1_3:
+fixes half speed bug
+fixes low volume issues: if standing and request special data, from now on the volume will allways be driving volume until reboot
+
+DOKU:
+controls: (driving/not-driving)
+CCW: distance trip, distance absulut, power/range, Wh discharged absolute & Wh regenerated absolut, reset trip
+ CW: cell voltage, Wh used trip (discharged-regenerated), Wh discharged trip, Wh charged trip, speed/Wh/km, -- extra data: (change volume) moving hours total, Wh/km total, power cycles
+
+sounds: -   -   -   -   | waiting for reboot after setting PPM ranges
+	-- -- -- -- | vesc communication error. reboot instantly!
+	----- pitch down ----- | no data stored
+	----  ---- ---- ---- | software froze, reboot instantly!
+	on power up: - - - - - OR -- -- -- -- -- OR --- --- --- --- --- | FRAM cluster reading error. if all 3 patterns: fatal error, now reboot sound: -   -   -   -   ...
+
+--x--x--x--x--x--x--x--x--x--x--x--x--x--
+
+fw_v3_2:
+better switching volume fix
+menu CW rearangement
+
+DOKU
+controls: (driving/not-driving)
+CCW: distance trip, distance absulut, power/range, Wh discharged absolute & Wh regenerated absolut, reset trip
+ CW: cell voltage, Wh used trip (discharged-regenerated), Wh discharged trip & Wh charged trip, Wh/km, speed/volume, -- extra data: moving hours total, Wh/km total, power cycles
+
+sounds: -   -   -   -   | waiting for reboot after setting PPM ranges
+	-- -- -- -- | vesc communication error. reboot instantly!
+	----- pitch down ----- | no data stored
+	----  ---- ---- ---- | software froze, reboot instantly!
+	on power up: - - - - - OR -- -- -- -- -- OR --- --- --- --- --- | FRAM cluster reading error. if all 3 patterns: fatal error, now reboot sound: -   -   -   -   ...
+
+
+
+751 km
+6970 226 wh
+
+64.7 t
+
+45 r
+

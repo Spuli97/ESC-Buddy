@@ -222,9 +222,9 @@ void vescCommErrLoop(void)
   piezo.setChannel(BOTH);
 
   piezo.frameUpdate();
-  while(1) // beep ubtil manual reset // VESC COMMUNICATION ERROR TONE
+  while(1) // beep until manual reset // VESC COMMUNICATION ERROR TONE
   {
-    loopBuzz(200, F2, 2, 200);
+    loopBuzz(200, F2, 2, 200); // -- -- -- --
     delay(500);
   }
 }
@@ -276,6 +276,6 @@ void loopBuzz(uint16_t t, uint8_t f, uint16_t times, uint16_t pause)
 
 void noDataSound(void)
 {
-  delay(800); loopBuzz(50, F3, 5, 100); wdt_reset(); loopBuzz(50, F2, 5, 100); delay(800);
+  delay(800); loopBuzz(50, F3, 5, 100); wdt_reset(); loopBuzz(50, F2, 5, 100); delay(800); // ----- pitch down -----
 }
 

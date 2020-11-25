@@ -71,7 +71,7 @@ volatile uint32_t WhCAbs   = 0;
 volatile uint32_t dTime    = 0;     // sek
 volatile float WhDTrip     = 0.0;    
 volatile float WhCTrip     = 0.0;    
-volatile uint32_t spdTop   = 0;     // 10*km/h
+volatile uint32_t spdTop   = 0;     // 10*km/h _v3 unused!! (but still in FRAM etc.
 volatile uint32_t powCycs  = 0;  
 
 // data for computation fusing saved and current data
@@ -168,7 +168,7 @@ ISR(WDT_vect) //Watchdog timeout ISR
   piezo.frameUpdate();
   while(1) // WDT ERROR TONE
   {
-    loopBuzz(200, F4, 4, 200);
+    loopBuzz(200, F4, 4, 200); /// ----  ---- ---- ----
     
     delay(500);
   }
@@ -187,7 +187,11 @@ void setup()
   
   remote.init(6); // on PD6 , pin10
 
-  _fram.init(80);
+  if(_fram.init(80))
+    resetSound();
+
+  
+  
   _eeprom.init(1024);
 
   wdt_reset();
@@ -242,13 +246,16 @@ void setup()
   UART.setSerialPort(&Serial);
 
   wdt_reset();
-  
+
+  piezo.setChannel(BOTH); 
   delay(10);
   
   if (readFRAM(0) == 0)
     if (readFRAM(1) == 0)
       if (readFRAM(2) == 0)
         waitingForReboot();
+
+  piezo.setChannel(INTERNAL); 
         
   powCycs ++;
   
@@ -262,6 +269,8 @@ void loop()
   long backupTimeB = 0;
   long loopTime = millis();
   long movTime = 0;
+  
+  uint8_t volume = 0;
   
   while(1)
   {
@@ -308,7 +317,7 @@ void loop()
           vescCommErrLoop();
           
         // prepare variables for the calculations
-        dt=0; da=0; wda=0; wca=0; cv=0; wut=0; wdt=0; wct=0; spd=0;
+        dt=0; da=0; wda=0; wca=0; cv=0; wut=0; wdt=0; wct=0; //spd=0; // _v3 bugfix spd
 
         // combine data
         inpVoltageTmp         = (inpVoltageTmp + UART.data.inpVoltage) / 2.0;
@@ -330,9 +339,6 @@ void loop()
         wut = wdt - wct;
         
         tim = dTime + movTime/1000;
-        
-        if ((uint32_t)spd > spdTop)
-          spdTop = spd;
           
 
         // for range estimation
@@ -352,7 +358,8 @@ void loop()
         }
         else
         {
-          piezo.setChannel(INTERNAL);
+          if (volume == 0) // only if low volume is selected
+            piezo.setChannel(INTERNAL);
         }
         loopTime = millis();
               
@@ -404,7 +411,7 @@ void loop()
         }
         break;
           
-      case 3: //range estimate OR power ------------------------------------------------------------------------------------------------------------------------
+      case 3: //power OR range estimate ------------------------------------------------------------------------------------------------------------------------
         if (((float)spd) / ERPM_PER_KMPH < DRIVING_SPD) // do range estimation if not moving
         {
           if (wut > 5.0 && dt > (uint32_t)(TAC_PER_KM/15.0)) // at least gether this much data
@@ -434,7 +441,7 @@ void loop()
         
       case 4: //wda AND wca -----------------------------------------------------------------------------------------------------------------------------------
         beepOutInt(wda, 0, 1);
-        delay(800); loopBuzz(50, F2, 5, 100); wdt_reset(); loopBuzz(50, F3, 5, 100); delay(800);
+        delay(800); loopBuzz(50, F2, 5, 100); wdt_reset(); loopBuzz(50, F3, 5, 100); delay(800); // intermediate sound
         beepOutInt(wca, 0, 1);
         break;
         
@@ -453,12 +460,21 @@ void loop()
         }
         break;
         
-      case 7: //wdt --------------------------------------------------------------------------------------------------------------------------------------------
+      case 7: //wdt AND wct ------------------------------------------------------------------------------------------------------------------------------------
         beepOutFloat(wdt, 1);
+        delay(800); loopBuzz(50, F2, 5, 100); wdt_reset(); loopBuzz(50, F3, 5, 100); delay(800); // intermediate sound //_v3_2
+        beepOutFloat(wct, 1); //_v3_2
         break;
         
-      case 8: //wct --------------------------------------------------------------------------------------------------------------------------------------------
-        beepOutFloat(wct, 1);
+      case 8: //Wh/km ------------------------------------------------------------------------------------------------------------------------------------------  //_v3_2 (all)
+        if (wut > 5.0 && dt > (uint32_t)(TAC_PER_KM/15.0)) // at least gether this much data && not div by 0
+        {
+          beepOutFloat(wut / (float)( ((double)dt) / ((double)TAC_PER_KM) ), 1);
+        }
+        else
+        {
+          noDataSound(); // no data or sub zero
+        }
         break;
         
       case 9: //reset trip --------------------------------------------------------------------------------------------------------------------------------------
@@ -474,25 +490,27 @@ void loop()
         backupTimeA = millis();
         break;
         
-      case 10: //speed OR Wh/km ---------------------------------------------------------------------------------------------------------------------------------
+      case 10: //speed OR change volume ------------------------------------------------------------------------------------------------------------------------- //_v3_2
         if (((float)spd) / ERPM_PER_KMPH > DRIVING_SPD) // if moving with at least DRIVING_SPD
         {
           beepOutFloat( (float)( ((double)spd) / ((double)ERPM_PER_KMPH) ), 1); // show speed
         }
-        else // show Wh/km trip
+        else // change volume
         {
-          if (wut > 5.0 && dt > (uint32_t)(TAC_PER_KM/15.0)) // at least gether this much data && not div by 0
+          if (volume == 0)
           {
-            beepOutFloat(wut / (float)( ((double)dt) / ((double)TAC_PER_KM) ), 1);
+            volume = 1;
+            piezo.setChannel(EXTERNAL); 
           }
           else
           {
-            noDataSound(); // no data or sub zero
+            volume = 0;
+            piezo.setChannel(INTERNAL);
           }
         }
         break;
         
-      case 11: //show all the special data ---------------------------------------------------------------------------------------------------------------
+      case 11: //show all the special data and change volume ---------------------------------------------------------------------------------------------------
         loopBuzz(100, F3, 10, 200); wdt_reset(); loopBuzz(100, F4, 10, 200);
 
         // _deb
@@ -503,10 +521,10 @@ void loop()
         //UART.data.tachometerAbs       += 173624; //4416;
         //UART.data.erpm                += 435;
         //UART.data.avgInputCurrent     += 5.0;
-        
+
         delay(REQUEST_TO_BEEP);
-        
-        //total moving hours ----------------------------------------------------------------------------------------------------------------------------
+
+        //total moving hours -----------------------------------------------------------------------------------------------------------------------------ok 
         if ((float)tim/3600.0 >= 0.1) 
         {
           if (tim < 64790) // < 17.9h
@@ -518,10 +536,10 @@ void loop()
         {
           noDataSound();
         }
-        
+
         delay(800); loopBuzz(50, F2, 5, 100); wdt_reset(); loopBuzz(50, F3, 5, 100); delay(800);
-        
-        //total Wh/km -----------------------------------------------------------------------------------------------------------------------------------ok
+
+        //total Wh/km -----------------------------------------------------------------------------------------------------------------------------------ok 
         if ((int64_t)wda-(int64_t)wca > (int64_t)10 && da > (uint64_t)(TAC_PER_KM*2)) // at least gether this much data && not div by 0
         {
           beepOutInt((int64_t)(wda-wca) / (int64_t)( da / ((uint64_t)round(TAC_PER_KM)) ), 0, 1);
@@ -532,20 +550,6 @@ void loop()
         }
         
         delay(800); loopBuzz(50, F2, 5, 100); wdt_reset(); loopBuzz(50, F3, 5, 100); delay(800);
-        
-        //top speed ------------------------------------------------------------------------------------------------------------------------------------- NOT WORKING
-        /*
-        if (((float)spdTop) / ERPM_PER_KMPH > DRIVING_SPD) // if moved with at least DRIVING_SPD
-        {
-          beepOutFloat( (float)( ((double)spdTop) / ((double)ERPM_PER_KMPH) ), 1); // show speed
-        }
-        else
-        {
-          noDataSound(); // no data or sub zero
-        }
-        
-        delay(800); loopBuzz(50, F2, 5, 100); wdt_reset(); loopBuzz(50, F3, 5, 100); delay(800);
-        */
         
         //power cycles ----------------------------------------------------------------------------------------------------------------------------------ok
         beepOutInt(powCycs, 0, 1);

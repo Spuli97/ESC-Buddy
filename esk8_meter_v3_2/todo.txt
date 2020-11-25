@@ -1,0 +1,5 @@
+test new read and write fram functions OK
+test redundency concept		       OK
+new main loopcent order		       OK
+
+// _deb
